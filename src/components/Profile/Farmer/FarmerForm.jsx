@@ -2,86 +2,105 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 
 const FarmerForm = () => {
-  const [FormData, setFormData] = useState({
+  const [formDataState, setFormDataState] = useState({
     name: "",
     contact: 0,
     location: "",
     experience: "",
-    personalInfo: "",
+    // personalInfo: "",
     verification_status: false,
+    profileImage: null,
+    // farmImage1: null,
+    // farmImage2: null,
   });
 
+  // const [imageDataState, setImageDataState] = useState({
+  //   profileImage: null,
+  //   farmImage1: null,
+  //   farmImage2: null,
+  // });
+
   const [isEditing, setIsEditing] = useState(false);
-  const [Image, setImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isOpen, setIsOpen] = useState(true);
 
   const username = localStorage.getItem("username");
 
+  // Submit data to the server
+  console.log("profileImage:", formDataState.profileImage);
+  // console.log("farmImage1:", formDataState.farmImage1);
+  // console.log("farmImage2:", formDataState.farmImage2);
+
   const sendFarmerData = async () => {
+    const formData = new FormData();
+    formData.append("username", username);
+    formData.append("name", formDataState.name);
+    formData.append("contact", formDataState.contact);
+    formData.append("location", formDataState.location);
+    formData.append("experience", formDataState.experience);
+    // formData.append("personalInfo", formDataState.personalInfo);
+
+    // Check if the files exist before appending them
+    if (formDataState.profileImage) {
+      formData.append("profileImage", formDataState.profileImage);
+    }
+    // if (formDataState.farmImage1) {
+    //   formData.append("farmImage1", formDataState.farmImage1);
+    // }
+    // if (formDataState.farmImage2) {
+    //   formData.append("farmImage2", formDataState.farmImage2);
+    // }
+
     try {
-      const formData = new FormData();
-
-      // Append text data
-      formData.append("username", username);
-      formData.append("name", FormData.name);
-      formData.append("contact", FormData.contact);
-      formData.append("location", FormData.location);
-      formData.append("experience", FormData.experience);
-      formData.append("personalInfo", FormData.personalInfo);
-      formData.append("verification_status", FormData.verification_status);
-
-      // Append images (make sure these variables hold the actual File objects)
-      if (FormData.profileImage) {
-        formData.append("profileImage", FormData.profileImage);
-      }
-      if (FormData.farmImage1) {
-        formData.append("farmImage1", FormData.farmImage1);
-      }
-      if (FormData.farmImage2) {
-        formData.append("farmImage2", FormData.farmImage2);
-      }
-
       const response = await axios.post(
         "http://localhost:3000/sendfarmerprofile",
         formData,
         {
-          headers: {
-            "Content-Type": "multipart/form-data", // Important for sending FormData
-          },
+          headers: { "Content-Type": "multipart/form-data" },
         }
       );
-
-      if (response.status === 200) {
-        console.log("Data added correctly!", response.data);
-      }
+      console.log("Profile updated:", response.data);
     } catch (error) {
-      console.log("Error:", error);
+      console.error(
+        "Error submitting form:",
+        error.response ? error.response.data : error.message
+      );
     }
   };
 
-  const [imagePreview, setImagePreview] = useState(null);
-
+  // Handle image selection
   const handleImageChange = (event, fieldName) => {
     const file = event.target.files[0];
     if (file) {
       const previewURL = URL.createObjectURL(file);
-      setImagePreview(previewURL); // For displaying the preview
+      setImagePreview(previewURL);
 
-      // Store the file in form data or state object to be used in submission
-      setFormData((prevData) => ({
-        ...prevData,
+      setFormDataState((prevState) => ({
+        ...prevState,
         [fieldName]: file,
       }));
     }
   };
 
+  // Fetch farmer data from server
   useEffect(() => {
     const fetchFarmerData = async () => {
       try {
         const response = await axios.get(
           "http://localhost:3000/getfarmerprofile",
-          { params: { username: username } }
+          { params: { username } }
         );
-        setFormData(response.data);
+        // Make sure profileImage is a valid URL or file path
+        setFormDataState(response.data);
+        if (
+          response.data.name &&
+          response.data.contact &&
+          response.data.location &&
+          response.data.experience
+        ) {
+          setIsOpen(false); // Hide the form if data exists
+        }
       } catch (error) {
         console.log("Error:", error);
       } finally {
@@ -89,25 +108,9 @@ const FarmerForm = () => {
       }
     };
     fetchFarmerData();
-  }, []);
+  }, [username]);
 
-  const [isOpen, setIsOpen] = useState(FormData.name == "");
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (FormData.name == "") {
-      setIsOpen(true);
-    } else {
-      setIsOpen(false);
-    }
-  }, [FormData.name]);
-
-  useEffect(() => {
-    if (!loading) {
-      setIsOpen(FormData.name === "");
-    }
-  }, [FormData.name, loading]);
-
+  // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
     sendFarmerData();
@@ -122,8 +125,6 @@ const FarmerForm = () => {
 
   if (loading) return null;
 
-  console.log(isEditing);
-
   return (
     <>
       {(isOpen || isEditing) && (
@@ -137,12 +138,12 @@ const FarmerForm = () => {
               <input
                 type="text"
                 placeholder="Enter your name"
-                value={FormData.name}
+                value={formDataState.name}
                 required
                 className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
-                onChange={(e) => {
-                  setFormData({ ...FormData, name: e.target.value });
-                }}
+                onChange={(e) =>
+                  setFormDataState({ ...formDataState, name: e.target.value })
+                }
               />
             </div>
             <div className="mb-4">
@@ -150,12 +151,15 @@ const FarmerForm = () => {
               <input
                 type="text"
                 placeholder="Enter your contact number"
-                value={FormData.contact}
+                value={formDataState.contact}
                 required
                 className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
-                onChange={(e) => {
-                  setFormData({ ...FormData, contact: e.target.value });
-                }}
+                onChange={(e) =>
+                  setFormDataState({
+                    ...formDataState,
+                    contact: e.target.value,
+                  })
+                }
               />
             </div>
             <div className="mb-4">
@@ -163,12 +167,15 @@ const FarmerForm = () => {
               <input
                 type="text"
                 placeholder="Enter your location"
-                value={FormData.location}
+                value={formDataState.location}
                 required
                 className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
-                onChange={(e) => {
-                  setFormData({ ...FormData, location: e.target.value });
-                }}
+                onChange={(e) =>
+                  setFormDataState({
+                    ...formDataState,
+                    location: e.target.value,
+                  })
+                }
               />
             </div>
             <div className="mb-4">
@@ -176,12 +183,15 @@ const FarmerForm = () => {
               <input
                 type="text"
                 placeholder="Enter your experience"
-                value={FormData.experience}
+                value={formDataState.experience}
                 required
                 className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
-                onChange={(e) => {
-                  setFormData({ ...FormData, experience: e.target.value });
-                }}
+                onChange={(e) =>
+                  setFormDataState({
+                    ...formDataState,
+                    experience: e.target.value,
+                  })
+                }
               />
             </div>
             <div className="flex justify-between">
@@ -206,24 +216,24 @@ const FarmerForm = () => {
         <div className="flex flex-col space-y-2">
           <div className="flex justify-between">
             <span className="font-semibold text-gray-800">Name:</span>
-            <span className="text-gray-600">{FormData.name}</span>
+            <span className="text-gray-600">{formDataState.name}</span>
           </div>
           <div className="flex justify-between">
             <span className="font-semibold text-gray-800">Contact:</span>
-            <span className="text-gray-600">{FormData.contact}</span>
+            <span className="text-gray-600">{formDataState.contact}</span>
           </div>
           <div className="flex justify-between">
             <span className="font-semibold text-gray-800">Location:</span>
-            <span className="text-gray-600">{FormData.location}</span>
+            <span className="text-gray-600">{formDataState.location}</span>
           </div>
           <div className="flex justify-between">
             <span className="font-semibold text-gray-800">Experience:</span>
-            <span className="text-gray-600">{FormData.experience}</span>
+            <span className="text-gray-600">{formDataState.experience}</span>
           </div>
         </div>
       </div>
       <div className="absolute top-10 right-1/3 p-4 bg-white bg-opacity-90 rounded-lg shadow-md w-1/5">
-        <div>Personal Info: {FormData.personalInfo}</div>
+        <div>Personal Info: {formDataState.personalInfo}</div>
       </div>
       <div>
         <button
@@ -236,24 +246,32 @@ const FarmerForm = () => {
         </button>
       </div>
       <div className="absolute top-4 left-14 p-4 bg-white bg-opacity-90 rounded-full shadow-md w-60 h-60 flex flex-col items-center justify-center">
-        {/* Clickable label to upload image */}
+        {/* Check if the profileImage exists */}
+        {formDataState.profileImage ? (
+          <img
+            src={formDataState.profileImage} // If profileImage is a URL, directly use it
+            alt="Profile"
+            className="w-full h-full object-cover rounded-full"
+          />
+        ) : (
+          <div className="bg-slate-400 w-full h-full flex items-center justify-center rounded-full">
+            {/* Placeholder content can go here */}
+            <span>No Image</span>
+          </div>
+        )}
+
+        {/* File input for image upload */}
         <label className="w-full h-full flex items-center justify-center cursor-pointer">
-          {imagePreview ? (
-            <img
-              src={imagePreview}
-              alt="Selected"
-              className="w-full h-full object-cover rounded-full"
-            />
-          ) : (
-            <div className="bg-slate-400 w-full h-full flex items-center justify-center rounded-full">
-              <span className="text-white">Add Image Here</span>
-            </div>
-          )}
-          {/* Hidden file input */}
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => handleImageChange(e, "profileImage")} // Update to call with the specific field name
+            onChange={(e) => {
+              const file = e.target.files[0];
+              setFormDataState({
+                ...formDataState,
+                profileImage: file, // Store the file in state for upload
+              });
+            }}
             className="hidden"
           />
         </label>
