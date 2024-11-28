@@ -13,30 +13,48 @@ const Signup = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Clear all data from localStorage when Home component mounts
-    localStorage.clear();
+    // Clear only the form data from localStorage, not everything
+    localStorage.removeItem("username");
+    localStorage.removeItem("password");
+    localStorage.removeItem("role");
   }, []);
+
+  const validateEmail = (email) => {
+    // Basic email validation regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
+    // Validate password length
     if (password.length < 8) {
       setError("Password must be at least 8 characters long");
       return;
     }
 
+    // Validate email format
+    if (!validateEmail(username)) {
+      setError("Username must be a valid email address");
+      return;
+    }
+
+    // Check if role is selected
     if (!role) {
       setError("Please select a role");
       return;
     }
 
+    // Check if username is empty
     if (username.trim() === "") {
       setError("Username is required");
       return;
     }
 
+    // Check if passwords match
     if (confirmPassword !== password) {
       setError("Passwords do not match");
       return;
@@ -81,9 +99,13 @@ const Signup = () => {
               <h1 className="font-bold text-xl text-green-600 mb-5">Sign Up</h1>
               {error && <div className="text-red-500 mb-4">{error}</div>}{" "}
               {/* Display error messages */}
+              {success && (
+                <div className="text-green-500 mb-4">{success}</div>
+              )}{" "}
+              {/* Display success message */}
               <input
                 type="text"
-                placeholder="Username"
+                placeholder="Username (Email)"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required

@@ -7,6 +7,7 @@ import Login from "./components/Authentication/Login";
 import Profile from "./components/Profile/Profile";
 import FarmerNetwork from "./components/FarmerNetwork/FarmerNetwork";
 import Contract from "./components/Contract/Contract";
+import Reset from "./components/General/Reset";
 
 function App() {
   const router = createBrowserRouter([
@@ -55,6 +56,14 @@ function App() {
       element: (
         <>
           <Contract />
+        </>
+      ),
+    },
+    {
+      path: "/reset",
+      element: (
+        <>
+          <Reset />
         </>
       ),
     },

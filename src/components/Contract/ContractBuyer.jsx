@@ -151,7 +151,7 @@ const ContractBuyer = () => {
     doc.text(`Farmer: ${farmerName}`, 20, 50);
     doc.text(`Crop: ${contract.crop_name}`, 20, 60);
     doc.text(`Quantity: ${contract.crop_quantity} kg`, 20, 70);
-    doc.text(`Price: ₹${contract.price} per kg`, 20, 80);
+    doc.text(`Price: Rs.${contract.price} per kg`, 20, 80);
     doc.text(`Duration: ${contract.duration} months`, 20, 90);
 
     // Add a line break for better spacing
@@ -221,6 +221,18 @@ const ContractBuyer = () => {
             Download Contract PDF
           </button>
         )}
+        {/* New Contract Button */}
+        {paymentSuccess && (
+          <button
+            onClick={() => {
+              localStorage.setItem("paymentSuccess", "false"); // Reset payment status
+              setContract(null); // Clear the current contract details
+            }}
+            className="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 mt-4"
+          >
+            New Contract
+          </button>
+        )}
         {/* If there's an existing contract, show the contract preview */}
         {contract ? (
           <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 max-w-2xl space-y-4">
@@ -240,7 +252,7 @@ const ContractBuyer = () => {
               <strong>Quantity:</strong> {contract.crop_quantity || "N/A"} kg
             </p>
             <p>
-              <strong>Price:</strong> ₹{contract.price || "N/A"} per kg
+              <strong>Price:</strong> Rs.{contract.price || "N/A"} per kg
             </p>
             <p>
               <strong>Duration:</strong> {contract.duration || "N/A"} months
@@ -253,8 +265,6 @@ const ContractBuyer = () => {
             <p>
               This agreement is entered into between{" "}
               <strong>{buyerName}</strong> and <strong>{farmerName}</strong>.
-              Both parties agree to the terms mentioned above to establish a
-              successful contract farming relationship.
             </p>
             {contract.contract_status === "accepted" && (
               <div className="bg-green-500 text-white p-4 rounded-md">
@@ -360,7 +370,7 @@ const ContractBuyer = () => {
                 htmlFor="price"
                 className="block text-gray-600 font-medium"
               >
-                Price per Unit (e.g., ₹/kg):
+                Price per Unit (e.g., Rs/kg):
               </label>
               <input
                 type="number"
