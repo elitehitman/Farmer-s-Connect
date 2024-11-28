@@ -9,8 +9,9 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Clear all data from localStorage when Home component mounts
-    localStorage.clear();
+    // Remove only specific items added by this code
+    localStorage.removeItem("role");
+    localStorage.removeItem("username");
   }, []);
 
   const handleSubmit = async (e) => {

@@ -5,6 +5,8 @@ import Home from "./components/Home/Home";
 import Signup from "./components/Authentication/Signup";
 import Login from "./components/Authentication/Login";
 import Profile from "./components/Profile/Profile";
+import FarmerNetwork from "./components/FarmerNetwork/FarmerNetwork";
+import Contract from "./components/Contract/Contract";
 
 function App() {
   const router = createBrowserRouter([
@@ -37,6 +39,22 @@ function App() {
       element: (
         <>
           <Profile />
+        </>
+      ),
+    },
+    {
+      path: "/farmer-network",
+      element: (
+        <>
+          <FarmerNetwork />
+        </>
+      ),
+    },
+    {
+      path: "/contract",
+      element: (
+        <>
+          <Contract />
         </>
       ),
     },

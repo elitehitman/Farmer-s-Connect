@@ -6,6 +6,7 @@ import multer from "multer";
 import path from "path";
 import bcrypt from "bcrypt"; // To hash passwords
 import fs from "fs";
+import nodemailer from "nodemailer";
 
 import { fileURLToPath } from "url"; // Add this import
 import { User, Farmer, Buyer } from "./models/models.js";
@@ -187,6 +188,71 @@ app.post(
   }
 );
 
+app.post(
+  "/sendbuyerprofile",
+  upload.fields([
+    { name: "profileImage", maxCount: 1 },
+    { name: "companyImage1", maxCount: 1 },
+    { name: "companyImage2", maxCount: 1 },
+  ]),
+  async (req, res) => {
+    try {
+      const { username, name, contact, location, description, company } =
+        req.body;
+      console.log("Received data:", req.body);
+
+      // Only check for required fields like 'username', 'name', etc.
+      if (!username || !name || !contact || !location || !description) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Handle file uploads (optional)
+      const profileImage = req.files["profileImage"]
+        ? req.files["profileImage"][0].path
+        : null;
+      const companyImage1 = req.files["companyImage1"]
+        ? req.files["companyImage1"][0].path
+        : null;
+      const companyImage2 = req.files["companyImage2"]
+        ? req.files["companyImage2"][0].path
+        : null;
+
+      // Update farmer profile with optional fields
+      const updatedBuyer = await Buyer.findOneAndUpdate(
+        { username: username },
+        {
+          $set: {
+            name: name,
+            contact: contact,
+            location: location,
+            description: description,
+            company: company || "", // Allow empty value for personalInfo
+            profileImage: profileImage || "", // Allow null if not provided
+            companyImage1: companyImage1 || "", // Allow null if not provided
+            companyImage2: companyImage2 || "", // Allow null if not provided
+          },
+        },
+        { new: true }
+      );
+
+      if (updatedBuyer) {
+        return res.status(200).json({
+          message: "Buyer profile updated successfully",
+          buyer: updatedBuyer,
+        });
+      } else {
+        return res.status(404).json({ message: "Buyer not found" });
+      }
+    } catch (error) {
+      console.error("Error in /sendbuyerprofile:", error); // Log the error for debugging
+      return res.status(500).json({
+        message: "Error updating buyer profile",
+        error: error.message,
+      });
+    }
+  }
+);
+
 app.get("/getfarmerprofile", async (req, res) => {
   const { username } = req.query;
   try {
@@ -205,6 +271,99 @@ app.get("/getfarmerprofile", async (req, res) => {
     res.status(500).send("Server Error");
   }
 });
+
+app.get("/getbuyerprofile", async (req, res) => {
+  const { username } = req.query;
+  try {
+    const buyer = await Buyer.findOne({ username: username });
+    if (!buyer) {
+      return res.status(400).send("Buyer Not Found");
+    }
+
+    // Assuming the image path is stored in farmer.profileImage
+    if (buyer.profileImage) {
+      buyer.profileImage = `http://localhost:3000/${buyer.profileImage}`;
+    }
+
+    res.json(buyer);
+  } catch (error) {
+    res.status(500).send("Server Error");
+  }
+});
+
+// Endpoint to retrieve all farmers
+app.get("/getallfarmers", async (req, res) => {
+  try {
+    const farmers = await Farmer.find(); // Fetch all farmers from the database
+    if (!farmers || farmers.length === 0) {
+      return res.status(404).send("No farmers found");
+    }
+
+    // Modify image paths if needed
+    farmers.forEach((farmer) => {
+      if (farmer.profileImage) {
+        farmer.profileImage = `http://localhost:3000/${farmer.profileImage}`;
+      }
+    });
+
+    res.json(farmers); // Send the list of all farmers as response
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server Error");
+  }
+});
+
+app.get("/getbuyername/:username", async (req, res) => {
+  try {
+    const { username } = req.params;
+    const buyer = await Buyer.findOne({ username }); // Replace 'Buyer' with your model
+    if (buyer) {
+      res.json({ name: buyer.name });
+    } else {
+      res.status(404).json({ error: "Buyer not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Email sending route
+app.post("/send-payment-email", (req, res) => {
+  const { email, subject, text } = req.body;
+
+  if (!email || !subject || !text) {
+    return res.status(400).send("Missing email, subject, or text");
+  }
+
+  sendEmail(email, subject, text);
+  res.status(200).send("Email sent successfully");
+});
+
+// Configure your email transporter (using Gmail as an example)
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: "shintreaditya05@gmail.com", // Replace with your email
+    pass: "fxyp hwkh vrxe xrck", // Replace with your email password (or use an App Password)
+  },
+});
+
+const sendEmail = (email, subject, text) => {
+  const mailOptions = {
+    from: "shintreaditya05@gmail.com",
+    to: email,
+    subject: subject,
+    text: text,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.log("Error sending email:", error);
+    } else {
+      console.log("Email sent:", info.response);
+    }
+  });
+};
 
 app.use("/uploads", express.static(path.join(uploadPath)));
 
